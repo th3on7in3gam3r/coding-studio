@@ -257,7 +257,7 @@ export function Explorer({
           onClick={onNewProject}
           className="mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#2e3546] text-[13px] text-soft hover:bg-hover"
         >
-          <Plus size={14} /> New from template
+          <Plus size={14} /> New project
         </button>
       </div>
     </aside>

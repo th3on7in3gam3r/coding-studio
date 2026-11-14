@@ -174,7 +174,7 @@ export function TopBar({
             onSelect: () => onSwitchProject(p.id),
           })),
           "divider" as const,
-          { label: "New from template…", onSelect: onNewProject },
+          { label: "New project…", onSelect: onNewProject },
           { label: "Rename project…", onSelect: onRenameProject },
           { label: "Delete project…", onSelect: onDeleteProject, danger: true },
         ]}
@@ -261,7 +261,7 @@ export function ActivityBar({
       <IconButton label="Search files" onClick={onSearch} className={cls}>
         <Search size={18} />
       </IconButton>
-      <IconButton label="New project from template" onClick={onTemplates} className={cls}>
+      <IconButton label="New project" onClick={onTemplates} className={cls}>
         <LayoutGrid size={18} />
       </IconButton>
       {relay && (

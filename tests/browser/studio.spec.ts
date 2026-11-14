@@ -51,7 +51,7 @@ test("edit, save/reload, live HTML/JS preview, review/apply/undo, backups", asyn
 test("PHP executes source in a terminable WASM worker", async ({ page }) => {
   await open(page);
   await page.keyboard.press("Control+k");
-  await page.keyboard.type("template");
+  await page.keyboard.type("new project");
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: /^PHP/ }).click();
   const editor = await usePlainEditor(page);

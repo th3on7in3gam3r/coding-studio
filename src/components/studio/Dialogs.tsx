@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Code2, FileCode, Globe, Server } from "lucide-react";
+import { Code2, FileArchive, FileCode, FolderUp, Globe, Server } from "lucide-react";
 import type { Mode } from "@/lib/project";
 import type { ServerStatus } from "./types";
 import { Button, Field, Modal, inputClass } from "./ui";
@@ -97,22 +97,113 @@ const templates: { mode: Mode; title: string; text: string; icon: typeof Globe }
   { mode: "php", title: "PHP", text: "PHP 8.3 runs in your browser with includes.", icon: Server },
 ];
 
-export function TemplateDialog({ onPick, onClose }: { onPick: (m: Mode) => void; onClose: () => void }) {
+export function NewProjectDialog({
+  onBlank,
+  onTemplate,
+  onFolder,
+  onZip,
+  onClose,
+}: {
+  onBlank: (m: Mode, name: string) => void;
+  onTemplate: (m: Mode, name: string) => void;
+  onFolder: (files: File[]) => void;
+  onZip: () => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [mode, setMode] = useState<Mode>("html");
+  const trimmed = name.trim();
   return (
-    <Modal title="New project" onClose={onClose}>
-      <div className="grid gap-2 p-5 sm:grid-cols-2">
-        {templates.map((t) => (
-          <button
-            key={t.mode}
-            type="button"
-            onClick={() => onPick(t.mode)}
-            className="flex flex-col gap-2 rounded-xl border border-line-strong bg-raised p-4 text-left hover:border-accent-line hover:bg-hover"
-          >
-            <t.icon size={18} className="text-accent-soft" />
-            <span className="text-[13px] font-semibold">{t.title}</span>
-            <span className="text-xs leading-relaxed text-muted">{t.text}</span>
-          </button>
-        ))}
+    <Modal title="New project" onClose={onClose} wide>
+      <div className="flex flex-col gap-5 p-5">
+        <section className="flex flex-col gap-3" aria-label="Start your own project">
+          <h3 className="text-[13px] font-semibold">Start your own</h3>
+          <Field label="Project name">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Church landing page"
+              maxLength={80}
+              className={inputClass}
+              data-autofocus
+            />
+          </Field>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium text-soft">Language</span>
+            <div role="radiogroup" aria-label="Language" className="flex flex-wrap gap-2">
+              {templates.map((t) => (
+                <button
+                  key={t.mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === t.mode}
+                  onClick={() => setMode(t.mode)}
+                  className={
+                    "inline-flex min-h-11 items-center gap-2 rounded-lg border px-3.5 text-[13px] " +
+                    (mode === t.mode
+                      ? "border-accent bg-accent-wash text-fg"
+                      : "border-line-strong bg-raised text-soft hover:border-accent-line")
+                  }
+                >
+                  <t.icon size={15} className="text-accent-soft" />
+                  {t.title}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Button variant="primary" onClick={() => onBlank(mode, trimmed)} className="self-start">
+            Create blank project
+          </Button>
+        </section>
+
+        <section className="flex flex-col gap-2 border-t border-line pt-4" aria-label="Bring your own code">
+          <h3 className="text-[13px] font-semibold">Bring your own code</h3>
+          <p className="text-xs text-muted">
+            Upload a project folder from your computer, or a ZIP. node_modules, .git and .env files are skipped.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-line-strong bg-raised px-3.5 text-[13px] font-medium hover:border-accent-line focus-within:ring-2 focus-within:ring-accent">
+              <FolderUp size={15} className="text-accent-soft" />
+              Upload a folder
+              <input
+                type="file"
+                className="sr-only"
+                multiple
+                // Non-standard but supported by Chrome, Edge, Safari and Firefox.
+                {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+                onChange={(e) => {
+                  const list = Array.from(e.target.files || []);
+                  e.target.value = "";
+                  if (list.length) onFolder(list);
+                }}
+              />
+            </label>
+            <Button onClick={onZip} className="min-h-11">
+              <FileArchive size={15} className="text-accent-soft" />
+              Import a ZIP
+            </Button>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-2 border-t border-line pt-4" aria-label="Start from a template">
+          <h3 className="text-[13px] font-semibold">Or start from a template</h3>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {templates.map((t) => (
+              <button
+                key={t.mode}
+                type="button"
+                onClick={() => onTemplate(t.mode, trimmed)}
+                className="flex flex-col gap-1.5 rounded-xl border border-line-strong bg-raised p-3.5 text-left hover:border-accent-line hover:bg-hover"
+              >
+                <span className="flex items-center gap-2 text-[13px] font-semibold">
+                  <t.icon size={16} className="text-accent-soft" />
+                  {t.title}
+                </span>
+                <span className="text-xs leading-relaxed text-muted">{t.text}</span>
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
     </Modal>
   );

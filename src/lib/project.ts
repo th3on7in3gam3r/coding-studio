@@ -167,6 +167,48 @@ export function template(mode: Mode): Project {
     updated: Date.now(),
   };
 }
+/** An empty project in the chosen language, with only the files it needs to run. */
+export function blankProject(mode: Mode, name: string): Project {
+  const title = name.trim().slice(0, 80) || "Untitled project";
+  const safeTitle = title.replace(/[<>&"]/g, "");
+  let files: Record<string, string>, entry: string;
+  if (mode === "nextjs") {
+    entry = "app/page.tsx";
+    files = {
+      "package.json": JSON.stringify(
+        {
+          name: relaySlug(title) || "my-app",
+          version: "1.0.0",
+          private: true,
+          scripts: { dev: "next dev --webpack -H 0.0.0.0" },
+          dependencies: { next: "16.4.6", react: "19.3.0", "react-dom": "19.3.0" },
+          devDependencies: { typescript: "^5", "@types/node": "^20", "@types/react": "^19", "@types/react-dom": "^19" },
+        },
+        null,
+        2,
+      ),
+      "app/layout.tsx": `import './globals.css';\nexport default function Layout({ children }: { children: React.ReactNode }) {\n  return <html lang="en"><body>{children}</body></html>;\n}\n`,
+      "app/page.tsx": `export default function Home() {\n  return <main></main>;\n}\n`,
+      "app/globals.css": "",
+      "next.config.mjs": "export default { devIndicators: false };\n",
+    };
+  } else if (mode === "php") {
+    entry = "index.php";
+    files = {
+      "index.php": `<?php\n\n?>\n<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>${safeTitle}</title>\n<link rel="stylesheet" href="style.css">\n</head>\n<body>\n\n</body>\n</html>\n`,
+      "style.css": "",
+    };
+  } else {
+    entry = "index.html";
+    files = {
+      "index.html": `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${safeTitle}</title>\n<link rel="stylesheet" href="style.css">\n</head>\n<body>\n\n<script src="main.js"></script>\n</body>\n</html>\n`,
+      "style.css": "",
+      "main.js": "",
+    };
+  }
+  return { id: crypto.randomUUID(), name: title, mode, files, assets: {}, folders: [], entry, updated: Date.now() };
+}
+
 export function detectMode(files: Record<string, string>): Mode {
   if (Object.keys(files).some((p) => p.endsWith(".php"))) return "php";
   if (

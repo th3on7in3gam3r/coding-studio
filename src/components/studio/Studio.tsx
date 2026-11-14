@@ -13,6 +13,7 @@ import {
   Upload,
 } from "lucide-react";
 import {
+  blankProject,
   RELAY_SLUG,
   relaySlug as slugFor,
   replaceFile,
@@ -24,7 +25,7 @@ import {
   type Workspace,
 } from "@/lib/project";
 import { loadWorkspace, saveWorkspace } from "@/lib/storage";
-import { download, exportZip, importProject } from "@/lib/archive";
+import { download, exportZip, importFolder, importProject } from "@/lib/archive";
 import { previewWindowHTML, renderHTML } from "@/lib/preview";
 import { applyHunks } from "@/lib/diff";
 import { localSuggestions, visibleReply, type Suggestion } from "@/lib/suggestions";
@@ -38,7 +39,7 @@ import {
   ConfirmDialog,
   PromptDialog,
   SettingsDialog,
-  TemplateDialog,
+  NewProjectDialog,
   type ConfirmRequest,
   type PromptRequest,
 } from "./Dialogs";
@@ -550,6 +551,15 @@ export default function Studio() {
       toast(String(e instanceof Error ? e.message : e), "error");
     }
   }
+  async function handleFolder(list: File[]) {
+    try {
+      const p = await importFolder(list);
+      addProject({ ...p, id: uid() });
+      toast(`Uploaded ${p.name} (${Object.keys(p.files).length} files). Your other projects were kept.`, "success");
+    } catch (e) {
+      toast(String(e instanceof Error ? e.message : e), "error");
+    }
+  }
   async function exportProject(format: "zip" | "json") {
     if (!project) return;
     try {
@@ -871,7 +881,7 @@ export default function Studio() {
     ...(running ? [{ id: "stop", label: "Stop runtime", group: "Actions" as const, icon: <Square size={14} />, run: stop }] : []),
     { id: "newfile", label: "New file…", group: "Actions", icon: <FilePlus2 size={14} />, run: () => void newPath(false) },
     { id: "newfolder", label: "New folder…", group: "Actions", icon: <FolderPlus size={14} />, run: () => void newPath(true) },
-    { id: "newproject", label: "New project from template…", group: "Actions", icon: <LayoutGrid size={14} />, run: () => setTemplates(true) },
+    { id: "newproject", label: "New project…", group: "Actions", icon: <LayoutGrid size={14} />, run: () => setTemplates(true) },
     { id: "zip", label: "Export ZIP", group: "Actions", icon: <Download size={14} />, run: () => void exportProject("zip") },
     { id: "json", label: "Export JSON backup", group: "Actions", icon: <Download size={14} />, run: () => void exportProject("json") },
     { id: "import", label: "Import ZIP or JSON…", group: "Actions", icon: <Upload size={14} />, run: () => fileInput.current?.click() },
@@ -1114,11 +1124,25 @@ export default function Studio() {
         />
       )}
       {templates && (
-        <TemplateDialog
+        <NewProjectDialog
           onClose={() => setTemplates(false)}
-          onPick={(m) => {
+          onBlank={(m, name) => {
             setTemplates(false);
-            addProject(template(m));
+            addProject(blankProject(m, name));
+            toast(`Created ${name || "Untitled project"}. Start typing!`, "success");
+          }}
+          onTemplate={(m, name) => {
+            setTemplates(false);
+            const t = template(m);
+            addProject(name ? { ...t, name } : t);
+          }}
+          onFolder={(list) => {
+            setTemplates(false);
+            void handleFolder(list);
+          }}
+          onZip={() => {
+            setTemplates(false);
+            fileInput.current?.click();
           }}
         />
       )}
