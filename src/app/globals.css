@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@theme {
+  --breakpoint-wide: 87.5rem;
+  --color-bg: #0b0d12;
+  --color-panel: #0e1117;
+  --color-sunken: #10131a;
+  --color-raised: #141820;
+  --color-hover: #1a1e2a;
+  --color-selected: #1e2233;
+  --color-line: #1d2230;
+  --color-line-strong: #262c3b;
+  --color-fg: #e6e8ee;
+  --color-soft: #c9ceda;
+  --color-muted: #9aa2b1;
+  --color-dim: #8a92a2;
+  --color-accent: #8b7cff;
+  --color-accent-soft: #c4b5fd;
+  --color-accent-wash: #15132a;
+  --color-accent-line: #3a3470;
+  --color-brand: #6d5df6;
+  --color-brand-hover: #5b4be8;
+  --color-ok: #34d399;
+  --color-ok-soft: #6ee7b7;
+  --color-ok-wash: #0f1f1a;
+  --color-ok-line: #16362b;
+  --color-warn: #fbbf24;
+  --color-warn-wash: #1c1810;
+  --color-danger: #fda4af;
+  --color-danger-line: #3a2430;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  overflow: hidden;
+}
+
+::selection {
+  background: #3a3470;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2e3546 transparent;
+}
+
+.sr-only-focusable:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* Chat markdown */
+.md p {
+  margin: 0 0 0.6em;
+}
+.md p:last-child {
+  margin-bottom: 0;
+}
+.md ul,
+.md ol {
+  margin: 0 0 0.6em;
+  padding-left: 1.2em;
+}
+.md li {
+  margin: 0.15em 0;
+}
+.md code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  color: var(--color-accent-soft);
+}
+.md pre {
+  margin: 0 0 0.6em;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--color-sunken);
+  border: 1px solid var(--color-line);
+  overflow-x: auto;
+}
+.md pre code {
+  color: var(--color-soft);
+}
+.md h3,
+.md h4 {
+  margin: 0.8em 0 0.4em;
+  font-size: 1em;
+  font-weight: 600;
+}
+.md a {
+  color: #b4a9ff;
+}
+
+@keyframes studio-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-rise {
+  animation: studio-rise 180ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
