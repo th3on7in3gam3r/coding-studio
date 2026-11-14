@@ -124,6 +124,8 @@ export function AssistantPanel({
   onRelaySlug,
   onRelayLoad,
   onRelaySave,
+  relayProjects = [],
+  onRelayCreate,
   onOpenSettings,
   className,
   hideHeader,
@@ -159,6 +161,8 @@ export function AssistantPanel({
   onRelaySlug: (s: string) => void;
   onRelayLoad: () => void;
   onRelaySave: (summary: string) => Promise<boolean>;
+  relayProjects?: { slug: string; name: string }[];
+  onRelayCreate?: () => void;
   onOpenSettings: () => void;
   className?: string;
   hideHeader?: boolean;
@@ -456,17 +460,39 @@ export function AssistantPanel({
               Relay project
               <input
                 value={relaySlug}
+                list="relay-projects"
+                placeholder="pick or type a project"
                 onChange={(e) => onRelaySlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
                 className={cn(inputClass, "h-9 font-mono")}
                 spellCheck={false}
               />
+              <datalist id="relay-projects">
+                {relayProjects.map((p) => (
+                  <option key={p.slug} value={p.slug}>
+                    {p.name}
+                  </option>
+                ))}
+              </datalist>
             </label>
             <Button onClick={onRelayLoad} disabled={relay.loading || !hasToken} className="h-9">
               <RefreshCw size={13} className={relay.loading ? "animate-spin" : ""} />
               {relay.context ? "Refresh" : "Load"}
             </Button>
           </div>
-          {relay.error && <p className="rounded-lg border border-danger-line bg-[#1a1014] px-3 py-2 text-xs text-danger">{relay.error}</p>}
+          {relay.error && /^No project /.test(relay.error) ? (
+            <div className="flex flex-col gap-2 rounded-lg border border-line-strong bg-sunken px-3 py-2.5 text-xs text-soft">
+              <span>
+                <b className="font-mono text-fg">{relaySlug}</b> isn&apos;t in Agent Relay yet. Pick an existing project above, or add this one.
+              </span>
+              {onRelayCreate && (
+                <Button size="sm" onClick={onRelayCreate} disabled={relay.loading} className="self-start">
+                  Create “{relaySlug}” in Relay
+                </Button>
+              )}
+            </div>
+          ) : (
+            relay.error && <p className="rounded-lg border border-danger-line bg-[#1a1014] px-3 py-2 text-xs text-danger">{relay.error}</p>
+          )}
           {relay.context ? (
             <>
               <label className="flex items-center gap-2 text-xs text-soft">

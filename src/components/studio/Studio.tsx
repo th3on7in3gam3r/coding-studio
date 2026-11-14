@@ -105,6 +105,7 @@ export default function Studio() {
   const [includeRelay, setIncludeRelay] = useState(true);
   const [includeConsole, setIncludeConsole] = useState(true);
   const [relay, setRelay] = useState<RelayState>({ project: "", context: "", fetchedAt: null, loading: false, error: "" });
+  const [relayProjects, setRelayProjects] = useState<{ slug: string; name: string }[]>([]);
   const [slugDraft, setSlugDraft] = useState("");
   // Overlays
   const [palette, setPalette] = useState<string | null>(null);
@@ -760,6 +761,37 @@ export default function Studio() {
   useEffect(() => {
     if (status.relay && token && slug && relay.project !== slug && !relay.loading && !relay.error) void loadRelay(slug);
   }, [status.relay, token, slug, relay.project, relay.loading, relay.error, loadRelay]);
+  const loadRelayProjects = useCallback(async () => {
+    if (!token) return;
+    try {
+      const r = await fetch("/api/relay?list=1", { headers: { Authorization: "Bearer " + token } });
+      const data = await r.json();
+      if (r.ok && Array.isArray(data.projects)) setRelayProjects(data.projects);
+    } catch {
+      /* the picker is optional; typing a name still works */
+    }
+  }, [token]);
+  useEffect(() => {
+    if (status.relay && token) void loadRelayProjects();
+  }, [status.relay, token, loadRelayProjects]);
+  async function createRelay(name: string) {
+    if (!RELAY_SLUG.test(slugDraft)) return;
+    setRelay((r) => ({ ...r, loading: true, error: "" }));
+    try {
+      const r = await fetch("/api/relay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ action: "create", project: slugDraft, name }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Could not create the Relay project");
+      toast(`Created “${slugDraft}” in Agent Relay.`, "success");
+      void loadRelayProjects();
+      await loadRelay(slugDraft);
+    } catch (e) {
+      setRelay((r) => ({ ...r, loading: false, error: e instanceof Error ? e.message : String(e) }));
+    }
+  }
   async function saveRelay(summary: string) {
     try {
       const r = await fetch("/api/relay", {
@@ -1029,6 +1061,8 @@ export default function Studio() {
             void loadRelay(slugDraft);
           }}
           onRelaySave={saveRelay}
+          relayProjects={relayProjects}
+          onRelayCreate={() => void createRelay(project.name)}
           onOpenSettings={() => setSettings(true)}
           className={cn(
             "w-full lg:w-[360px] wide:w-[340px] lg:shrink-0",

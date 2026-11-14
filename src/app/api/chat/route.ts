@@ -1,6 +1,7 @@
 import { safePath } from "@/lib/project";
 import { checkAccess, DOCS, fetchDocs, json, readJson } from "@/lib/server";
 import { CHANGES_CLOSE, CHANGES_OPEN, parseChanges } from "@/lib/suggestions";
+import { providerErrorMessage, readProviderError } from "@/lib/provider-error";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
@@ -133,13 +134,10 @@ export async function POST(request: Request) {
   } catch {
     return json({ error: "Could not reach the AI provider. Try again." }, 502);
   }
-  if (!upstream.ok || !upstream.body)
-    return json(
-      {
-        error: `AI provider returned HTTP ${upstream.status}. Check server credentials, model access and billing.`,
-      },
-      502,
-    );
+  if (!upstream.ok || !upstream.body) {
+    const detail = upstream.ok ? "" : await readProviderError(upstream);
+    return json({ error: providerErrorMessage(upstream.status, detail, model) }, 502);
+  }
 
   const encoder = new TextEncoder();
   const fileMap = Object.fromEntries(entries) as Record<string, string>;

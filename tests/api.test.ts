@@ -192,3 +192,56 @@ test("relay reports when it is not configured", async () => {
     assert.equal(r.status, 503);
   });
 });
+
+test("chat explains provider errors in plain words", async () => {
+  const fail = (status: number, message: string) =>
+    (async () => Response.json({ type: "error", error: { type: "x", message } }, { status })) as typeof fetch;
+  await withEnv(aiEnv, fail(400, "Your credit balance is too low to access the Anthropic API."), async () => {
+    const r = await chat(request("/api/chat"));
+    assert.equal(r.status, 502);
+    assert.match((await r.json()).error, /out of credits.*console\.anthropic\.com/);
+  });
+  await withEnv(aiEnv, fail(404, "model: claude-nope"), async () => {
+    assert.match((await (await chat(request("/api/chat"))).json()).error, /model "test-model" isn't available/);
+  });
+  await withEnv(aiEnv, fail(401, "invalid x-api-key"), async () => {
+    assert.match((await (await chat(request("/api/chat"))).json()).error, /rejected the API key/);
+  });
+  await withEnv(aiEnv, fail(400, "messages: something odd"), async () => {
+    assert.match((await (await chat(request("/api/chat"))).json()).error, /HTTP 400: messages: something odd/);
+  });
+});
+
+test("relay lists projects and creates a missing one", async () => {
+  const calls: { name: string; arguments: Record<string, string> }[] = [];
+  const fetcher = (async (_url: URL | RequestInfo, options?: RequestInit) => {
+    const rpc = JSON.parse(String(options?.body));
+    calls.push(rpc.params);
+    const text =
+      rpc.params.name === "list_projects"
+        ? "- coding-studio: Coding Studio — Personal IDE (last: Claude, 2026-11-14)\n- awc-chat: AWC Chat (last: Claude, 2026-11-12)"
+        : `Created project ${rpc.params.arguments.slug}.`;
+    return Response.json({ jsonrpc: "2.0", id: 1, result: { content: [{ type: "text", text }] } });
+  }) as typeof fetch;
+  await withEnv(
+    { STUDIO_ACCESS_TOKEN: token, RELAY_MCP_URL: "https://relay.example/api/mcp/secret-token" },
+    fetcher,
+    async () => {
+      const list = await (await relayGet(request("/api/relay?list=1", token, null, "GET"))).json();
+      assert.deepEqual(list.projects, [
+        { slug: "coding-studio", name: "Coding Studio" },
+        { slug: "awc-chat", name: "AWC Chat" },
+      ]);
+      const created = await relayPost(
+        request("/api/relay", token, { action: "create", project: "my-html-project", name: "My HTML project" }),
+      );
+      assert.equal(created.status, 200);
+      assert.equal(
+        (await relayPost(request("/api/relay", token, { action: "create", project: "Bad Name", name: "x" }))).status,
+        400,
+      );
+    },
+  );
+  assert.equal(calls[1].name, "create_project");
+  assert.deepEqual(calls[1].arguments, { agent: "Coding Studio", slug: "my-html-project", name: "My HTML project" });
+});

@@ -59,3 +59,12 @@ export async function callRelay(
   if (payload.result?.isError) throw new Error(text || "Agent Relay refused the request");
   return text;
 }
+
+/** Pulls slugs out of list_projects' "- slug: Name — goal" lines. */
+export function parseProjectList(text: string) {
+  return text
+    .split("\n")
+    .map((l) => /^- ([a-z0-9][a-z0-9-]{0,62}): (.*)$/.exec(l.trim()))
+    .filter((m): m is RegExpExecArray => !!m)
+    .map((m) => ({ slug: m[1], name: m[2].split(" — ")[0].replace(/ \(last:.*$/, "") }));
+}

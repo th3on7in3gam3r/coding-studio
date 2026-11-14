@@ -1,5 +1,5 @@
 import { RELAY_SLUG } from "@/lib/project";
-import { callRelay, relayConfigured } from "@/lib/relay";
+import { callRelay, parseProjectList, relayConfigured } from "@/lib/relay";
 import { checkAccess, json, readJson } from "@/lib/server";
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -11,12 +11,23 @@ function notConfigured() {
   );
 }
 
-/** GET /api/relay?project=slug → the project's handoff and recent activity. */
+/**
+ * GET /api/relay?project=slug → the project's handoff and recent activity.
+ * GET /api/relay?list=1 → every Relay project, for the picker.
+ */
 export async function GET(request: Request) {
   if (!relayConfigured()) return notConfigured();
   const denied = checkAccess(request);
   if (denied) return denied;
-  const project = new URL(request.url).searchParams.get("project") || "";
+  const params = new URL(request.url).searchParams;
+  if (params.get("list")) {
+    try {
+      return json({ projects: parseProjectList(await callRelay("list_projects", {})) });
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message : "Agent Relay failed" }, 502);
+    }
+  }
+  const project = params.get("project") || "";
   if (!RELAY_SLUG.test(project)) return json({ error: "Invalid Relay project name." }, 400);
   try {
     const context = await callRelay("get_project_context", { project });
@@ -26,12 +37,15 @@ export async function GET(request: Request) {
   }
 }
 
-/** POST /api/relay {project, summary} → logs a session as "Coding Studio". */
+/**
+ * POST /api/relay {project, summary} → logs a session as "Coding Studio".
+ * POST /api/relay {action: "create", project, name} → creates the project in Relay.
+ */
 export async function POST(request: Request) {
   if (!relayConfigured()) return notConfigured();
   const denied = checkAccess(request);
   if (denied) return denied;
-  let body: { project?: unknown; summary?: unknown };
+  let body: { project?: unknown; summary?: unknown; action?: unknown; name?: unknown };
   try {
     body = (await readJson(request, 10000)) as typeof body;
   } catch {
@@ -39,6 +53,15 @@ export async function POST(request: Request) {
   }
   if (typeof body.project !== "string" || !RELAY_SLUG.test(body.project))
     return json({ error: "Invalid Relay project name." }, 400);
+  if (body.action === "create") {
+    const name = typeof body.name === "string" && body.name.trim() ? body.name.trim().slice(0, 120) : body.project;
+    try {
+      const result = await callRelay("create_project", { slug: body.project, name });
+      return json({ ok: true, result });
+    } catch (e) {
+      return json({ error: e instanceof Error ? e.message : "Agent Relay failed" }, 502);
+    }
+  }
   if (
     typeof body.summary !== "string" ||
     body.summary.trim().length < 10 ||
